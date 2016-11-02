@@ -62,8 +62,7 @@ class cohortcreation extends \core\task\scheduled_task {
          * if ($lastrun['lastruntime'] < time()-172800) {
          *     $sqlallusers = "SELECT * FROM {user} WHERE 'timemodified' > time()-172800";
          * } */
-        $allusers = $DB->get_recordset('user');
-
+        $allusers = $DB->get_records_select('user', "`timecreated` < 1");
         // Get the database id for each named cohort.
         $cohorts = array('mng_all_staff', 'mng_all_students', 'mng_all_users');
         foreach ($cohorts as $result) {
@@ -71,8 +70,11 @@ class cohortcreation extends \core\task\scheduled_task {
         }
 
         foreach ($allusers as $user) {
-            $record['userid'] = $user->id;
-            $record['timeadded'] = time();
+            $record['userid'] = $userupdate['id'] = $user->id;
+            $userupdate['timecreated'] = time();
+//            print_r($userupdate);
+            $DB->update_record('user', $userupdate);
+
             // Add to all users if not already there.
             $record['cohortid'] = $cohort['mng_all_users']->id;
             if (!$DB->record_exists('cohort_members',
