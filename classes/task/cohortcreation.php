@@ -52,17 +52,12 @@ class cohortcreation extends \core\task\scheduled_task {
         global $DB, $CFG;
         require_once($CFG->dirroot.'/cohort/lib.php');
 
-        /* Override sqlallusers so that if this has run in the last 48hrs it only picks up users modified in 48hrs.
-         * ISSUE: Users are populated externally and do not have timemodified/timecreated set.
-         * ========================================================================================================
-         * $lastrun = $DB->get_record('task_scheduled',
-         *     array('classname' => '\local_cohortcreation\task\cohortcreation'), '*', MUST_EXIST);
-         * $sqlallusers = "SELECT * FROM {user}";
-         *
-         * if ($lastrun['lastruntime'] < time()-172800) {
-         *     $sqlallusers = "SELECT * FROM {user} WHERE 'timemodified' > time()-172800";
-         * } */
+        /* Source data does not include timecreated - therefore select all users with
+         * timecreated < 1 will give new users, if a timecreated stamp is added to the
+         * record when processing. This saves processing every user every time.
+         */
         $allusers = $DB->get_records_select('user', "`timecreated` < 1");
+
         // Get the database id for each named cohort.
         $cohorts = array('mng_all_staff', 'mng_all_students', 'mng_all_users');
         foreach ($cohorts as $result) {
@@ -90,7 +85,7 @@ class cohortcreation extends \core\task\scheduled_task {
                     $record['cohortid'] = $cohort['mng_all_students']->id;
                     break;
             }
-            /* Just in case user has unusual email, this wont have changed -
+            /* Just in case user has unusual email, this wont have changed from mng_all_users
              * So do not add to staff or student as we wont know which. */
             if ($record['cohortid'] != $cohort['mng_all_users']->id) {
                 // Make sure record doesn't already exist and add.
